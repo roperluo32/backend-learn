@@ -25,3 +25,5 @@ public:
 （1）给定初始化的实例化对象，Player1 A; 问 Player1 B = A; Player1 C = A; 两种方式的区别?（拷贝构造函数）
 （2）sizeof(Player1)的大小？（字节优化对齐）
 （3）给定class Player2{private：int a; char b; double c; public： virtual fun(c){}}, 问sizeof(Player2)的大小？（虚函数表）
+
+- 实现单例模式
