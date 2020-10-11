@@ -32,3 +32,11 @@
 - 如何调试多线程程序
 
 - 如果发现系统负载过高，应该怎么排查原因，如何解决
+
+- 栈怎么检测避免溢出？mmap，mprotect
+
+- cpp内存泄漏检查
+    - 手动封装malloc打印文件行数
+    - 动态检查valgrind
+    - 语言层面避免，比如智能指针
+    - [《内存泄漏排查攻略之：Show me your Memory》](https://www.cnblogs.com/yougewe/p/11334342.html)
