@@ -38,3 +38,18 @@
 
 - vector使用迭代器进行循环，当循环开始时push_back一个数在后面，会发生什么
 - vector的导致迭代器失效的操作，vector和list的适用场景
+- vector resize和reserve
+
+
+- 说一下STL的空间配置器(两级分配)
+
+- map用find和[]的区别
+
+- vector实现讲一下。
+  - 讲了vector内存模型，分配器的实现，迭代器的种类（顺便讲了迭代器失效这类问题），提了一下traits机制。
+
+- STL容器的数据实际存在什么位置？
+
+- STL库介绍一下，为什么要设计迭代器
+
+- list的实现

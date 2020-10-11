@@ -31,3 +31,10 @@ public:
 - 两个线程交叉打印A和B（设置两个信号量）
 
 - 大端模式和小端模式的判断
+
+- 实现一个线程安全的queue的方法；（加锁，CAS队列，lock-free queue，mutex等）
+
+- int a[10]，求sizeof（a）和sizeof（a*）；
+
+- int (*a)[10] 解释；（指针数组）
+
