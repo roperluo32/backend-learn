@@ -27,3 +27,7 @@ public:
 （3）给定class Player2{private：int a; char b; double c; public： virtual fun(c){}}, 问sizeof(Player2)的大小？（虚函数表）
 
 - 实现单例模式
+
+- 两个线程交叉打印A和B（设置两个信号量）
+
+- 大端模式和小端模式的判断
