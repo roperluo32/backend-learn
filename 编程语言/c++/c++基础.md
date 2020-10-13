@@ -212,7 +212,11 @@
     ![](http://images-1251273400.cosgz.myqcloud.com/20201012223733.png)
     - [《C++ 虚拟继承》](https://www.cnblogs.com/heyonggang/p/3255155.html)
 
+- 菱形继承（虚基类指针） 虚基类指针指向哪个 简画子类对象内存
+    - [《图解C++菱形继承、虚继承对象的内存分布》](https://blog.csdn.net/AgoniAngel/article/details/105893798)
+  
 - 讲一下C++ 类的内存布局，继承，多继承，虚继承
+  
 - C++的子类虚继承两个父类的内存模型。
     - [《(好)C++ 多继承和虚继承的内存布局》](https://blog.csdn.net/yockie/article/details/50603236)
 
@@ -266,9 +270,7 @@
     - 基类的虚函数必须要加virtual，子类的虚函数可以不加
     - 如果父类或者祖先类中函数func()为虚函数，则子类及后代类中，函数func()是否加virtual关键字，都将是虚函数。为了提高程序的可读性，建议后代中虚函数都加上virtual关键字。
 
-- 菱形继承（虚基类指针） 虚基类指针指向哪个 简画子类对象内存
-    - [《图解C++菱形继承、虚继承对象的内存分布》](https://blog.csdn.net/AgoniAngel/article/details/105893798)
-- 析构函数可以抛出异常吗
+
 
 ## static和const用法
 - static的用法
@@ -289,6 +291,15 @@
         - [C++ const 关键字小结](https://www.runoob.com/w3cnote/cpp-const-keyword.html)
 
 - const函数和非const函数可以实现重载吗？
+  - 可以
+  ```c++
+  Class A {
+    int function ();
+    int function () const;
+   };
+  ```
+  - 且在调用时，只用A类的const对象才能调用const版本的function函数，而非const对象可以调用任意一种，通常非const对象调用不是const版本的function函数
+  - 按照函数重载的定义，函数名相同而形参表有本质不同的函数称为重载。在类中，由于隐含的this形参的存在，const版本的function函数使得作为形参的this指针的类型变为指向const对象的指针，而非const版本的使得作为形参的this指针就是正常版本的指针。此处是发生重载的本质。重载函数在最佳匹配过程中，对于const对象调用的就选取const版本的成员函数，而普通的对象调用就选取非const版本的成员函数。
 
 ## c++11
 - c++11有哪些新特性
@@ -296,9 +307,24 @@
     - 后置返回类型（方便模板定义的类型推导decltype）
     - 元组类型
     - lambda
+    - 智能指针
 
     - 基于范围的for循环
     - 空指针常量nullptr （NULL是常量0，会造成一些类型错误。比如想要空指针类型，结果是int）
+    - **以go作为类比来看c++11的一些新特性**
+    ```go
+    func A() (int, error) { //后置返回类型; 元组
+        m := make(map[string]int, 100)  //auto; 智能指针
+        
+        defer func (){      //lambda匿名函数
+        }()
+
+        for k, v := range m {   //基于范围的for循环
+            
+        }
+        return 0, nil   //空指针常量nullptr
+    }
+    ```
     - long long int 类型
     - std::bind和std::function函数封装器
 
@@ -310,7 +336,15 @@
         - [《十大必掌握C++11新特性》](https://blog.csdn.net/FX677588/article/details/70157088)
 
 - auto怎么实现
-- C++11里面auto有什么用，不给初始值可以吗
+  - auto的实现原理是基于模板类型推断
+  - [《理解auto类型推断》](https://www.cnblogs.com/harlanc/p/10628321.html)
+  - 作用：
+    - 拥有初始化表达式的复杂类型变量声明时简化代码
+    - 避免类型声明时的麻烦而且避免类型声明时的错误
+    - [《C++ 11新特性的用法之auto》](https://blog.csdn.net/hushujian/article/details/43196589)
+  - 
+- auto变量不给初始值可以吗
+  - 必须要有初始值
 
 - std::enable_if了解吗
 
@@ -324,8 +358,34 @@
         - [《C++中的智能指针》](https://www.nowcoder.com/ta/review-c/review?tpId=22&tqId=31357&query=&asc=true&order=&page=35)
 
 - 用过shared_ptr和weak_ptr吗？为什么要搭配使用？看过shared_ptr的源码吗？说一下
-- weak_ptr用在什么场景？为什么要用weak_ptr?
+    - shared_ptr共享被管理对象，同一时刻可以有多个shared_ptr拥有对象的所有权，当最后一个shared_ptr对象销毁时，被管理对象自动销毁
+    - weak_ptr不拥有对象的所有权，但是它可以判断对象是否存在和返回指向对象的shared_ptr类型指针；它的用途之一是解决多个对象内部含有shared_ptr循环指向，导致对象无法释放的问题
+    - [《share_ptr与weak_ptr的区别与联系》](https://blog.csdn.net/weixin_41066529/article/details/89480260)
+
+- 移动构造函数和移动赋值运算符
+  - 如果拷贝或者赋值的对象是一个右值引用，那么就可以安全地移动它，而不是拷贝它
+  ```c++
+      unique_ptr& operator=(unique_ptr&& source)   // note the rvalue reference
+        {
+            if (this != &source)    // beware of self-assignment
+            {
+                delete ptr;         // release the old resource
+
+                ptr = source.ptr;   // acquire the new resource
+                source.ptr = nullptr;
+            }
+            return *this;
+        }
+    };
+  ```
+  - [《翻译：怎样理解 C++ 11中的move语义（深入）》](https://www.cnblogs.com/tingshuo/archive/2013/01/22/2871328.html)
+  - 
 - std::move的作用与意义是什么
+  - 有时候，我们可能想转移左值，也就是说，有时候我们想让编译器把左值当作右值对待，以便能使用转移构造函数，即便这有点不安全
+  - 出于这个目的，C++ 11在标准库的头文件<utility>中提供了一个模板函数std::move
+  - 简单来说，std::move就是一个强制类型转换
+  
+
 - 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
 - 讲讲std::thread 和操作系统级别的线程有什么区别
 - 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
