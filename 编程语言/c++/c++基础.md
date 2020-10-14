@@ -538,10 +538,14 @@
     - [《C++ 11 左值，右值，左值引用，右值引用》](https://blog.csdn.net/xiaolewennofollow/article/details/52559306)
 
 - nullptr比NULL优势（指针地址和整数的歧义？）
+    -  NULL的值其实就是0，在有如下函数重载时，调用bar(a, NULL)调用的其实是第二个函数
+    ```c++
+    void bar(sometype1 a, sometype2 *b);
+    void bar(sometype1 a, int i);
+    ```
+    - 使用nullptr不会有这种歧义，调用bar(a, nullptr)始终执行的是第一个函数
+    - [《史上最明白的 NULL、0、nullptr 区别分析》](https://www.cnblogs.com/porter/p/3611718.html)
 
-- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
-- 讲讲std::thread 和操作系统级别的线程有什么区别
-- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
 
 - std里的bind()使用成员函数和普通函数有什么区别？
     - 使用成员函数需要注意补充this参数
@@ -550,7 +554,75 @@
 ## 模板
 - 模板了解多少
 - 模板偏特化了解吗
+    - 有时为了需要，针对特定的类型，需要对模板进行特化，也就是所谓的特殊处理。比如有以下的一段代码：
+    ```c++
+    #include <iostream>
+    using namespace std;
 
+    template <class T>
+    class TClass
+    {
+    public:
+         bool Equal(const T& arg, const T& arg1);
+    };
+
+    template <class T>
+    bool TClass<T>::Equal(const T& arg, const T& arg1)
+    {
+         return (arg == arg1);
+    }
+    ```
+    - 类里面就包括一个Equal方法，用来比较两个参数是否相等；上面的代码运行没有任何问题；但是，你有没有想过，在实际开发中是万万不能这样写的，对于float类型或者double的参数，绝对不能直接使用“==”符号进行判断
+    - 对于float或者double类型，我们需要进行特殊处理，处理如下,这就是全特化。全特化的模板已经不具有模板的意思了。偏特化就是
+    ```c++
+    template <class T>
+    class Compare
+    {
+    public:
+         bool IsEqual(const T& arg, const T& arg1);
+    };
+
+    // 已经不具有template的意思了，已经明确为float了
+    template <>
+    class Compare<float>
+    {
+    public:
+         bool IsEqual(const float& arg, const float& arg1);
+    };
+
+    // 已经不具有template的意思了，已经明确为double了
+    template <>
+    class Compare<double>
+    {
+    public:
+         bool IsEqual(const double& arg, const double& arg1);
+    };
+
+    ```
+    - 偏特化是指提供另一份template定义式，而其本身仍为templatized
+    ```c++
+    template <class _Iterator>
+    struct iterator_traits
+    {
+         typedef typename _Iterator::iterator_category  iterator_category;
+         typedef typename _Iterator::value_type        value_type;
+         typedef typename _Iterator::difference_type   difference_type;
+         typedef typename _Iterator::pointer           pointer;
+         typedef typename _Iterator::reference         reference;
+    };
+
+    // specialize for _Tp*
+    template <class _Tp>
+    struct iterator_traits<_Tp*> 
+    {
+         typedef random_access_iterator_tag iterator_category;
+         typedef _Tp                         value_type;
+         typedef ptrdiff_t                   difference_type;
+         typedef _Tp*                        pointer;
+         typedef _Tp&                        reference;
+    };
+    ```
+    - [《C++ 模板，特化，与偏特化》](https://www.jianshu.com/p/4be97bf7a3b9)
 
 
 
@@ -564,7 +636,9 @@
 - 两个线程什么情况会出现死锁
 - 如何控制线程执行顺序
 - 无锁编程，release acquire语义
-
+- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
+- 讲讲std::thread 和操作系统级别的线程有什么区别
+- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
 
 
 
