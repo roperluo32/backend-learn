@@ -342,12 +342,16 @@
     - 拥有初始化表达式的复杂类型变量声明时简化代码
     - 避免类型声明时的麻烦而且避免类型声明时的错误
     - [《C++ 11新特性的用法之auto》](https://blog.csdn.net/hushujian/article/details/43196589)
-  - 
+  
 - auto变量不给初始值可以吗
   - 必须要有初始值
 
+
+- auto关键字用过吗，类型推导有什么限制。如果用来声明函数要注意什么
+- 
 - std::enable_if了解吗
 
+#### 智能指针
 - 智能指针
     不需要手动去delete释放指针，退出作用域后自动释放（不管是正常退出，还是异常退出，类似golang的defer)
     有下面几种只能指针
@@ -357,13 +361,152 @@
     - 参考
         - [《C++中的智能指针》](https://www.nowcoder.com/ta/review-c/review?tpId=22&tqId=31357&query=&asc=true&order=&page=35)
 
+- 智能指针的实现原理是什么
+    - 利用了一种叫做RAII（资源获取即初始化）的技术对普通的指针进行封装，这使得智能指针实质是一个对象，行为表现的却像一个指针
+    - 智能指针的作用是防止忘记调用delete释放内存和程序异常的进入catch块忘记释放内存。另外指针的释放时机也是非常有考究的，多次释放同一个指针会造成程序崩溃，这些都可以通过智能指针来解决。
+    - 智能指针就是模拟指针动作的类。所有的智能指针都会重载 -> 和 * 操作符
+    - 智能指针类将一个计数器与类指向的对象相关联，引用计数跟踪该类有多少个对象共享同一指针
+    ```c++
+    #include <iostream>
+    #include <memory>
+
+    template<typename T>
+    class SmartPointer {
+    private:
+        T* _ptr;
+        size_t* _count;
+    public:
+        SmartPointer(T* ptr = nullptr) :
+                _ptr(ptr) {
+            if (_ptr) {
+                _count = new size_t(1);
+            } else {
+                _count = new size_t(0);
+            }
+        }
+
+        SmartPointer(const SmartPointer& ptr) {
+            if (this != &ptr) {
+                this->_ptr = ptr._ptr;
+                this->_count = ptr._count;
+                (*this->_count)++;
+            }
+        }
+
+        SmartPointer& operator=(const SmartPointer& ptr) {
+            if (this->_ptr == ptr._ptr) {
+                return *this;
+            }
+
+            if (this->_ptr) {
+                (*this->_count)--;
+                if (this->_count == 0) {
+                    delete this->_ptr;
+                    delete this->_count;
+                }
+            }
+
+            this->_ptr = ptr._ptr;
+            this->_count = ptr._count;
+            (*this->_count)++;
+            return *this;
+        }
+
+        T& operator*() {
+            assert(this->_ptr == nullptr);
+            return *(this->_ptr);
+
+        }
+
+        T* operator->() {
+            assert(this->_ptr == nullptr);
+            return this->_ptr;
+        }
+
+        ~SmartPointer() {
+            (*this->_count)--;
+            if (*this->_count == 0) {
+                delete this->_ptr;
+                delete this->_count;
+            }
+        }
+
+        size_t use_count(){
+            return *this->_count;
+        }
+    };
+    ```
+    - [《C++11中智能指针的原理、使用、实现》](https://www.cnblogs.com/wxquare/p/4759020.html)
+
+
+- shared_ptr基本用法
+  - 初始化。通过构造函数、std::make_shared<T>辅助函数和reset方法来初始化shared_ptr
+  ```c++
+    std::shared_ptr<Person> p1(new Person(1));// Person(1)的引用计数为1
+
+    std::shared_ptr<Person> p2 = std::make_shared<Person>(2);
+
+    p1.reset(new Person(3));// 首先生成新对象，然后引用计数减1，引用计数为0，故析构Person(1)
+                            // 最后将新对象的指针交给智能指针
+
+    std::shared_ptr<Person> p3 = p1;//现在p1和p3同时指向Person(3)，Person(3)的引用计数为2
+
+    p1.reset();//Person(3)的引用计数为1
+    p3.reset();//Person(3)的引用计数为0，析构Person(3)
+  ```
+  - 注意点
+    - 不要用一个原始指针初始化多个shared_ptr，原因在于，会造成二次销毁
+   ```c++
+    int *p5 = new int;
+    std::shared_ptr<int> p6(p5);
+    std::shared_ptr<int> p7(p5);// logic error
+   ```
+    - 禁止通过shared_from_this()返回this指针，这样做可能也会造成二次析构
+    - 不要在函数实参中创建shared_ptr。因为C++的函数参数的计算顺序在不同的编译器下是不同的。正确的做法是先创建好，然后再传入
+    ```c++
+    function(shared_ptr<int>(new int), g());
+    ```
+    - 避免循环引用。智能指针最大的一个陷阱是循环引用，循环引用会导致内存泄漏。解决方法是AStruct或BStruct改为weak_ptr。
+    - [《智能指针shared_ptr的用法》](https://www.cnblogs.com/jiayayao/p/6128877.html)
+    - 
 - 用过shared_ptr和weak_ptr吗？为什么要搭配使用？看过shared_ptr的源码吗？说一下
     - shared_ptr共享被管理对象，同一时刻可以有多个shared_ptr拥有对象的所有权，当最后一个shared_ptr对象销毁时，被管理对象自动销毁
     - weak_ptr不拥有对象的所有权，但是它可以判断对象是否存在和返回指向对象的shared_ptr类型指针；它的用途之一是解决多个对象内部含有shared_ptr循环指向，导致对象无法释放的问题
     - [《share_ptr与weak_ptr的区别与联系》](https://blog.csdn.net/weixin_41066529/article/details/89480260)
 
+- share_ptr一定能保证内存不泄露吗？写代码说明（写完以后又问了如何避免）
+    - 不能，如果存在循环引用会导致内存泄露
+    - 引入weak_ptr来打破循环引用
+
+
+- unique_ptr怎么实现
+    - unique_ptr本身是一个类，在其析构函数中执行指针的释放
+    - 删除拷贝构造函数和赋值构造函数（=delete），从而实现只有一个实例能持有指针
+    - 有一个例外，支持移动拷贝构造函数和移动赋值构造函数，从而能够在函数中返回右值unique_ptr
+    ```c++
+    /* 从函数返回一个unique_ptr */
+    unique_ptr<int> clone(int p ){
+        return unique_ptr<int>(new int(p));
+    }
+    ```
+    - [《C++ 之实现自己的 unique_ptr》](https://blog.csdn.net/liushengxi_root/article/details/80672901)
+
+
+
+- shared_ptr、unique_ptr是线程安全的吗，底层实现
+    - 不是线程安全的
+    - 虽然引用计数是用原子操作，但是指向的对象不是原子的，也没有加锁
+    - ![](http://images-1251273400.cosgz.myqcloud.com/20201014080203.png)
+    - ![](http://images-1251273400.cosgz.myqcloud.com/20201014080222.png)
+    - [《shared_ptr的线程安全性》](https://blog.csdn.net/D_Guco/article/details/80155323)
+- shared_ptr循环引用，a->b,b->a,最后引用计数是多少
+- RAII是什么？全称呢？和智能指针什么关系
+  
+
+#### 移动构造函数和移动赋值
 - 移动构造函数和移动赋值运算符
   - 如果拷贝或者赋值的对象是一个右值引用，那么就可以安全地移动它，而不是拷贝它
+  - 在新建，拷贝对象时，如果是一个右值引用，那就能够使用移动构造和赋值函数，来节省拷贝的成本
   ```c++
       unique_ptr& operator=(unique_ptr&& source)   // note the rvalue reference
         {
@@ -379,35 +522,13 @@
     };
   ```
   - [《翻译：怎样理解 C++ 11中的move语义（深入）》](https://www.cnblogs.com/tingshuo/archive/2013/01/22/2871328.html)
-  - 
+  
 - std::move的作用与意义是什么
   - 有时候，我们可能想转移左值，也就是说，有时候我们想让编译器把左值当作右值对待，以便能使用转移构造函数，即便这有点不安全
   - 出于这个目的，C++ 11在标准库的头文件<utility>中提供了一个模板函数std::move
   - 简单来说，std::move就是一个强制类型转换
   
 
-- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
-- 讲讲std::thread 和操作系统级别的线程有什么区别
-- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
-- 智能指针的shared_pr 写下代码
-- share_ptr一定能保证内存不泄露吗？写代码说明（写完以后又问了如何避免）
-- 智能指针（unique_ptr，shared_ptr）循环引用（weak_ptr）为什么叫弱引用
-
-- 智能指针，引用计数，什么时候++，--，werk_ptr有什么用，怎么用
-
-- 用过shared_ptr和weak_ptr吗？为什么要搭配使用？看过shared_ptr的源码吗
-
-- unique_ptr怎么实现，独占，数组等
-- nullptr比NULL优势（指针地址和整数的歧义？）
-
-- 智能指针的实现原理是什么
-
-- auto关键字用过吗，类型推导有什么限制。如果用来声明函数要注意什么
-- RAII是什么？全称呢？和智能指针什么关系
-
-- shared_ptr、unique_ptr是线程安全的吗，底层实现
-
-- shared_ptr循环引用，a->b,b->a,最后引用计数是多少
 
 - 左值与右值,左值引用与右值引用
     - 左值就是有名字的变量，可以被赋值
@@ -415,6 +536,12 @@
     - 左值引用就是平时看到的引用，是对左值的引用
     - 右值引用是c++11中增加的特性，用&&符号表示。用来延长右值的生命周期，减少临时对象的生成
     - [《C++ 11 左值，右值，左值引用，右值引用》](https://blog.csdn.net/xiaolewennofollow/article/details/52559306)
+
+- nullptr比NULL优势（指针地址和整数的歧义？）
+
+- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
+- 讲讲std::thread 和操作系统级别的线程有什么区别
+- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
 
 - std里的bind()使用成员函数和普通函数有什么区别？
     - 使用成员函数需要注意补充this参数
