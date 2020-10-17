@@ -228,6 +228,10 @@
     ![](http://images-1251273400.cosgz.myqcloud.com/20201012223501.png)
     - [《c++如何防止一个类被其他类继承》](https://blog.csdn.net/zhang1308299607/article/details/76100430)
 
+- C++中的RAII机制
+    - RAII是Resource Acquisition Is Initialization（wiki上面翻译成 “资源获取就是初始化”）的简称，是C++语言的一种管理资源、避免泄漏的惯用法。
+    - 由于系统的资源不具有自动释放的功能，而C++中的类具有自动调用析构函数的功能。如果把资源用类进行封装起来，对资源操作都封装在类的内部，在析构函数中进行释放资源。当定义的局部变量的生命结束时，它的析构函数就会自动的被调用，如此，就不用程序员显示的去调用释放资源的操作了。
+    - [《C++中的RAII机制》](https://www.jianshu.com/p/b7ffe79498be)
 ## 多态与虚函数
 - 多态与虚函数
     - 多态。多态性(polymorphism)可以简单地概括为“一个接口，多种方法”。分为静态多态（函数重载）与动态多态（虚拟函数）
@@ -551,6 +555,14 @@
     - 使用成员函数需要注意补充this参数
     - [《C++11 中std::function和std::bind的用法》](https://blog.csdn.net/liukang325/article/details/53668046)
 
+- lambda用法
+    - lambda完整声明
+    ```c++
+    [capture list] (params list) mutable exception-> return type { function body }
+    ```
+    - 变量捕获符的用法
+    ![](http://images-1251273400.cosgz.myqcloud.com/20201015070645.png)
+
 ## 模板
 - 模板了解多少
 - 模板偏特化了解吗
@@ -628,17 +640,87 @@
 
 ## 多线程和锁
 - unique_lock和lock_guard的区别
+    - lock_guard是RAII模板类的简单实现，功能简单。lock_guard 在构造函数中进行加锁，析构函数中进行解锁
+    - unique_lock比lock_guard使用更加灵活，功能更加强大.允许延迟锁定、锁定的有时限尝试、递归锁定、所有权转移和与条件变量一同使用
+    - [《std::unique_lock与std::lock_guard区别示例》](https://www.cnblogs.com/xudong-bupt/p/9194394.html)
+
 - pthread_once的作用及实现
+    - 在多线程环境中，有些事仅需要执行一次，pthread_once就是确保某个初始化函数只会执行一次，类似于golang的sync.Once
+    - 使用互斥锁和条件变量保证由pthread_once()指定的函数执行且仅执行一次
+    - [《pthread_once()函数详解》](https://blog.csdn.net/hustyangju/article/details/46607811)
+
 - 条件变量应用场景
+    - 条件变量（condition_variable）实现多个线程间的同步操作；当条件不满足时，相关线程被一直阻塞，直到某种条件出现，这些线程才会被唤醒
+    - 条件变量类似于golang中的channel
+    - [《C++11条件变量使用详解》](https://blog.csdn.net/c_base_jin/article/details/89741247)
+
 - 线程池怎么使用锁，muduo中是使用什么锁，使用的是互斥锁，并不是使用读写锁。
 - 对比过muduo的异步日志效率跟别的日志系统吗？
 - 线程池是怎么实现的?线程池是用自己写的还是用的系统api
+    - [《基于C++11的线程池》](https://www.cnblogs.com/lzpong/p/6397997.html)
+
 - 两个线程什么情况会出现死锁
-- 如何控制线程执行顺序
-- 无锁编程，release acquire语义
-- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
+    - 忘记释放锁
+    - 单线程重复申请锁
+    - 双线程多锁申请（两者以不同的顺序加锁）
+    - 环形锁申请
+    - [《C++ 死锁及解决办法》](https://blog.csdn.net/weixin_38416696/article/details/90598963 )
+
+- 如何控制线程执行顺序,顺序打印ABC
+    ```c++
+    #include<iostream>
+    #include<vector>
+    #include<thread>
+    #include<condition_variable>
+    using namespace std;
+    mutex mu;
+    std::condition_variable cond_var;
+    int num=0;
+    void func(char ch)
+    {
+    	int n=ch-'A';
+    	for(int i=0;i<10;i++)
+    	{
+    		std::unique_lock<std::mutex> mylock(mu);
+    		cond_var.wait(mylock,[n]{return n==num;});
+    		cout<<ch;
+    		num=(num+1)%3;
+    		mylock.unlock();
+    		cond_var.notify_all();
+    	}
+    }
+    int main()
+    {
+    	vector<thread> pool;
+    	pool.push_back(thread(func,'A'));
+    	pool.push_back(thread(func,'B'));
+    	pool.push_back(thread(func,'C'));
+    	for(auto iter=pool.begin();iter!=pool.end();iter++)
+    	{
+    		iter->join();
+    	}
+    	return 0;
+    }
+    ```
+- std::function和std::bind
+    - [《C++11 中的std::function和std::bind》](https://www.jianshu.com/p/f191e88dcc80)
+- std::placeholders
+    - 占位符可以用来调换bind中参数的顺序
+    ```c++
+    void function(arg1,arg2,arg3,arg4,arg5)
+    {
+            //do something
+    }
+    auto g = bind(function,a,b,_2,c,_1);
+    ```
+    - [《标准库bind函数中使用占位符placeholders》](https://www.cnblogs.com/houjun/p/4802190.html)
+
 - 讲讲std::thread 和操作系统级别的线程有什么区别
+    - thread库可以看做对不同平台多线程API的一层包装,因此使用新标准提供的线程库编写的程序是跨平台的
+    - [《C++ std::thread概念介绍》](https://www.cnblogs.com/yssjun/p/11533346.html)
+
 - 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
 
 
+- 无锁编程，release acquire语义
 
