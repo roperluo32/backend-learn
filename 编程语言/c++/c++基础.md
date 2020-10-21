@@ -228,6 +228,10 @@
     ![](http://images-1251273400.cosgz.myqcloud.com/20201012223501.png)
     - [《c++如何防止一个类被其他类继承》](https://blog.csdn.net/zhang1308299607/article/details/76100430)
 
+- C++中的RAII机制
+    - RAII是Resource Acquisition Is Initialization（wiki上面翻译成 “资源获取就是初始化”）的简称，是C++语言的一种管理资源、避免泄漏的惯用法。
+    - 由于系统的资源不具有自动释放的功能，而C++中的类具有自动调用析构函数的功能。如果把资源用类进行封装起来，对资源操作都封装在类的内部，在析构函数中进行释放资源。当定义的局部变量的生命结束时，它的析构函数就会自动的被调用，如此，就不用程序员显示的去调用释放资源的操作了。
+    - [《C++中的RAII机制》](https://www.jianshu.com/p/b7ffe79498be)
 ## 多态与虚函数
 - 多态与虚函数
     - 多态。多态性(polymorphism)可以简单地概括为“一个接口，多种方法”。分为静态多态（函数重载）与动态多态（虚拟函数）
@@ -538,33 +542,185 @@
     - [《C++ 11 左值，右值，左值引用，右值引用》](https://blog.csdn.net/xiaolewennofollow/article/details/52559306)
 
 - nullptr比NULL优势（指针地址和整数的歧义？）
+    -  NULL的值其实就是0，在有如下函数重载时，调用bar(a, NULL)调用的其实是第二个函数
+    ```c++
+    void bar(sometype1 a, sometype2 *b);
+    void bar(sometype1 a, int i);
+    ```
+    - 使用nullptr不会有这种歧义，调用bar(a, nullptr)始终执行的是第一个函数
+    - [《史上最明白的 NULL、0、nullptr 区别分析》](https://www.cnblogs.com/porter/p/3611718.html)
 
-- 有用过std::thread和std::bind吗，知道std::placeholders实现原理吗
-- 讲讲std::thread 和操作系统级别的线程有什么区别
-- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
 
 - std里的bind()使用成员函数和普通函数有什么区别？
     - 使用成员函数需要注意补充this参数
     - [《C++11 中std::function和std::bind的用法》](https://blog.csdn.net/liukang325/article/details/53668046)
 
+- lambda用法
+    - lambda完整声明
+    ```c++
+    [capture list] (params list) mutable exception-> return type { function body }
+    ```
+    - 变量捕获符的用法
+    ![](http://images-1251273400.cosgz.myqcloud.com/20201015070645.png)
+
 ## 模板
 - 模板了解多少
 - 模板偏特化了解吗
+    - 有时为了需要，针对特定的类型，需要对模板进行特化，也就是所谓的特殊处理。比如有以下的一段代码：
+    ```c++
+    #include <iostream>
+    using namespace std;
 
+    template <class T>
+    class TClass
+    {
+    public:
+         bool Equal(const T& arg, const T& arg1);
+    };
+
+    template <class T>
+    bool TClass<T>::Equal(const T& arg, const T& arg1)
+    {
+         return (arg == arg1);
+    }
+    ```
+    - 类里面就包括一个Equal方法，用来比较两个参数是否相等；上面的代码运行没有任何问题；但是，你有没有想过，在实际开发中是万万不能这样写的，对于float类型或者double的参数，绝对不能直接使用“==”符号进行判断
+    - 对于float或者double类型，我们需要进行特殊处理，处理如下,这就是全特化。全特化的模板已经不具有模板的意思了。偏特化就是
+    ```c++
+    template <class T>
+    class Compare
+    {
+    public:
+         bool IsEqual(const T& arg, const T& arg1);
+    };
+
+    // 已经不具有template的意思了，已经明确为float了
+    template <>
+    class Compare<float>
+    {
+    public:
+         bool IsEqual(const float& arg, const float& arg1);
+    };
+
+    // 已经不具有template的意思了，已经明确为double了
+    template <>
+    class Compare<double>
+    {
+    public:
+         bool IsEqual(const double& arg, const double& arg1);
+    };
+
+    ```
+    - 偏特化是指提供另一份template定义式，而其本身仍为templatized
+    ```c++
+    template <class _Iterator>
+    struct iterator_traits
+    {
+         typedef typename _Iterator::iterator_category  iterator_category;
+         typedef typename _Iterator::value_type        value_type;
+         typedef typename _Iterator::difference_type   difference_type;
+         typedef typename _Iterator::pointer           pointer;
+         typedef typename _Iterator::reference         reference;
+    };
+
+    // specialize for _Tp*
+    template <class _Tp>
+    struct iterator_traits<_Tp*> 
+    {
+         typedef random_access_iterator_tag iterator_category;
+         typedef _Tp                         value_type;
+         typedef ptrdiff_t                   difference_type;
+         typedef _Tp*                        pointer;
+         typedef _Tp&                        reference;
+    };
+    ```
+    - [《C++ 模板，特化，与偏特化》](https://www.jianshu.com/p/4be97bf7a3b9)
 
 
 
 ## 多线程和锁
 - unique_lock和lock_guard的区别
+    - lock_guard是RAII模板类的简单实现，功能简单。lock_guard 在构造函数中进行加锁，析构函数中进行解锁
+    - unique_lock比lock_guard使用更加灵活，功能更加强大.允许延迟锁定、锁定的有时限尝试、递归锁定、所有权转移和与条件变量一同使用
+    - [《std::unique_lock与std::lock_guard区别示例》](https://www.cnblogs.com/xudong-bupt/p/9194394.html)
+
 - pthread_once的作用及实现
+    - 在多线程环境中，有些事仅需要执行一次，pthread_once就是确保某个初始化函数只会执行一次，类似于golang的sync.Once
+    - 使用互斥锁和条件变量保证由pthread_once()指定的函数执行且仅执行一次
+    - [《pthread_once()函数详解》](https://blog.csdn.net/hustyangju/article/details/46607811)
+
 - 条件变量应用场景
+    - 条件变量（condition_variable）实现多个线程间的同步操作；当条件不满足时，相关线程被一直阻塞，直到某种条件出现，这些线程才会被唤醒
+    - 条件变量类似于golang中的channel
+    - [《C++11条件变量使用详解》](https://blog.csdn.net/c_base_jin/article/details/89741247)
+
 - 线程池怎么使用锁，muduo中是使用什么锁，使用的是互斥锁，并不是使用读写锁。
 - 对比过muduo的异步日志效率跟别的日志系统吗？
 - 线程池是怎么实现的?线程池是用自己写的还是用的系统api
+    - [《基于C++11的线程池》](https://www.cnblogs.com/lzpong/p/6397997.html)
+
 - 两个线程什么情况会出现死锁
-- 如何控制线程执行顺序
+    - 忘记释放锁
+    - 单线程重复申请锁
+    - 双线程多锁申请（两者以不同的顺序加锁）
+    - 环形锁申请
+    - [《C++ 死锁及解决办法》](https://blog.csdn.net/weixin_38416696/article/details/90598963 )
+
+- 如何控制线程执行顺序,顺序打印ABC
+    ```c++
+    #include<iostream>
+    #include<vector>
+    #include<thread>
+    #include<condition_variable>
+    using namespace std;
+    mutex mu;
+    std::condition_variable cond_var;
+    int num=0;
+    void func(char ch)
+    {
+    	int n=ch-'A';
+    	for(int i=0;i<10;i++)
+    	{
+    		std::unique_lock<std::mutex> mylock(mu);
+    		cond_var.wait(mylock,[n]{return n==num;});
+    		cout<<ch;
+    		num=(num+1)%3;
+    		mylock.unlock();
+    		cond_var.notify_all();
+    	}
+    }
+    int main()
+    {
+    	vector<thread> pool;
+    	pool.push_back(thread(func,'A'));
+    	pool.push_back(thread(func,'B'));
+    	pool.push_back(thread(func,'C'));
+    	for(auto iter=pool.begin();iter!=pool.end();iter++)
+    	{
+    		iter->join();
+    	}
+    	return 0;
+    }
+    ```
+- std::function和std::bind
+    - [《C++11 中的std::function和std::bind》](https://www.jianshu.com/p/f191e88dcc80)
+- std::placeholders
+    - 占位符可以用来调换bind中参数的顺序
+    ```c++
+    void function(arg1,arg2,arg3,arg4,arg5)
+    {
+            //do something
+    }
+    auto g = bind(function,a,b,_2,c,_1);
+    ```
+    - [《标准库bind函数中使用占位符placeholders》](https://www.cnblogs.com/houjun/p/4802190.html)
+
+- 讲讲std::thread 和操作系统级别的线程有什么区别
+    - thread库可以看做对不同平台多线程API的一层包装,因此使用新标准提供的线程库编写的程序是跨平台的
+    - [《C++ std::thread概念介绍》](https://www.cnblogs.com/yssjun/p/11533346.html)
+
+- 了解C++11 的原子操作吗，C++11多线程内存模型知道吗
+
+
 - 无锁编程，release acquire语义
-
-
-
 
