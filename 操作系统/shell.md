@@ -108,7 +108,7 @@
 
 - xargs用法
     - [《xargs 命令教程》](https://www.ruanyifeng.com/blog/2019/08/xargs-tutorial.html)
-    
+
 - 假如有一万个单词，分别用空格隔开，统计重复单词的次数
     ```shell
         tr ' ' '\n'|sort | uniq -c|sort -n|head
@@ -145,3 +145,82 @@
     - ipcs -l命令可以查看各个资源的系统限制信息，可以看到系统允许的最大信号量集及信号量个数限制、最大的消息队列中消息个数等信息
     - [《ipcs命令详解》](https://www.cnblogs.com/machangwei-8/p/10388824.html)
 
+## 数组和for的用法
+- 定义数组
+	- arr=("hello" "world" "small" "bird")
+
+- 获取数组所有元素
+    - ${arr[*]}
+
+
+- 遍历数组所有元素
+```
+for item in ${arr[*]};do
+	echo $item
+done
+```
+
+## if用法
+- 双括号写法
+    - 只可以用于执行数字的比较.下例中cond如果是个字符串就会报错
+```
+    cond=1
+    if (( cond == 1 ));then
+        echo "cond is 1"
+    else
+        echo "cond is not 1"
+    fi
+```
+
+- 方括号写法
+    - 可以用于数字，字符串，文件的比较
+    - 数字的比较
+    ![](https://raw.githubusercontent.com/roperluo32/images/master/image20201021162055.png)
+    - 字符串的比较
+    ![](https://raw.githubusercontent.com/roperluo32/images/master/image20201021162135.png)
+    - 文件&目录的比较
+    ![](https://raw.githubusercontent.com/roperluo32/images/master/image20201021162207.png)
+
+## 函数
+- 定义
+
+```
+function hello {
+	echo "hello world.param1:$1, param:$2"
+}
+# 或者
+hello(){
+    echo "hello world.param1:$1, param:$2"
+}
+```
+    
+- 调用
+    
+```
+hello 3 5
+``` 
+    
+    
+- 返回值
+    
+    - 使用return返回特定数字返回码
+    
+![](https://raw.githubusercontent.com/roperluo32/images/master/image20201021171452.png)
+    
+    - 通过$()来获取函数的任意类型的返回值
+    
+![](https://raw.githubusercontent.com/roperluo32/images/master/image20201021171535.png)
+    
+## 执行命令并获取其输出的方法
+- 使用反引号的方式
+```
+    for line in `ls -l`;do
+      echo $line
+    done
+```
+- 使用$()的方式
+```
+    for line in $(ls -l)`;do
+      echo $line
+    done
+```
